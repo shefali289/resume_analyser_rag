@@ -1,0 +1,14 @@
+{
+  "name": "resume-analyser-rag",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Resume analyser using retrieval-augmented generation",
+  "scripts": {},
+  "dependencies": {
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.9",
+    "@langchain/google-genai": "^2.3.0",
+    "@supabase/supabase-js": "^2.112.4",
+    "dotenv": "^16.6.1"
+  }
+}

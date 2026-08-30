@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment files (keep the documented template)
+.env
+.env.*
+!.env.sample
+
+# npm artifacts
+.npm/
+.npm-cache/
+npm-debug.log*
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
