@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="340" viewBox="0 0 900 340" role="img" aria-labelledby="title description">
+  <title id="title">Resume Analyser RAG architecture</title>
+  <desc id="description">Resume text is split into chunks, embedded, stored in a vector database, retrieved, and passed to an LLM.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a1a1aa"/>
+    </marker>
+    <style>
+      .label { fill: #f4f4f5; font: 600 18px system-ui, sans-serif; text-anchor: middle; }
+      .small { fill: #a1a1aa; font: 500 14px system-ui, sans-serif; }
+      .implemented { fill: #0f172a; stroke: #67e8f9; stroke-width: 3; }
+      .planned { fill: #18181b; stroke: #a1a1aa; stroke-width: 3; }
+      .flow { fill: none; stroke: #a1a1aa; stroke-width: 3; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="900" height="340" rx="18" fill="#09090b"/>
+
+  <path class="flow" d="M 230 90 H 335"/>
+  <path class="flow" d="M 565 90 H 670"/>
+  <path class="flow" d="M 770 135 V 205"/>
+  <path class="flow" d="M 670 250 H 565"/>
+  <path class="flow" d="M 335 250 H 230"/>
+
+  <rect class="implemented" x="30" y="45" width="200" height="90" rx="14"/>
+  <text class="label" x="130" y="84">RESUME</text>
+  <text class="small" x="130" y="109" text-anchor="middle">(.txt)</text>
+
+  <rect class="implemented" x="335" y="45" width="230" height="90" rx="14"/>
+  <text class="label" x="450" y="97">CHUNKS</text>
+
+  <rect class="implemented" x="670" y="45" width="200" height="90" rx="14"/>
+  <text class="label" x="770" y="97">EMBEDDINGS</text>
+
+  <rect class="implemented" x="670" y="205" width="200" height="90" rx="14"/>
+  <text class="label" x="770" y="244">STORE IN</text>
+  <text class="label" x="770" y="270">VECTOR DB</text>
+
+  <rect class="implemented" x="335" y="205" width="230" height="90" rx="14"/>
+  <text class="label" x="450" y="257">RETRIEVE</text>
+
+  <rect class="implemented" x="30" y="205" width="200" height="90" rx="14"/>
+  <text class="label" x="130" y="257">LLM</text>
+
+  <circle cx="336" cy="320" r="6" fill="#67e8f9"/>
+  <text class="small" x="350" y="325">Implemented</text>
+  <circle cx="475" cy="320" r="6" fill="#a1a1aa"/>
+  <text class="small" x="489" y="325">Planned</text>
+</svg>
