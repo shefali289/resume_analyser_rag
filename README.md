@@ -1,122 +1,258 @@
-# Resume Analyser RAG
+# CareerLens AI — Resume Analyser RAG
 
-A Node.js command-line application for analysing resumes with a
-retrieval-augmented generation (RAG) pipeline. It chunks a plain-text resume,
-creates Hugging Face embeddings, retrieves relevant context from Supabase, and
-uses Google Gemini to generate career feedback. A user interface is planned.
+CareerLens is a portfolio-grade resume intelligence app combining explainable
+ATS analysis with persistent retrieval-augmented generation. Upload a TXT, PDF,
+or DOCX resume, compare it with a target job, and generate grounded coaching
+with LangChain, Hugging Face, Supabase pgvector, and Google Gemini.
 
-![Resume Analyser RAG architecture](docs/architecture.svg)
+![CareerLens RAG architecture](docs/architecture.svg)
 
-## Current status
+## Features
 
-| Stage | Status | What it does |
-| --- | --- | --- |
-| Read resume | Implemented | Loads `resume.txt` from the project directory. |
-| Create chunks | Implemented | Splits the resume into 500-character chunks with 50-character overlap. |
-| Create embeddings | Implemented | Converts chunks into vectors with Hugging Face. |
-| Store vectors | Implemented | Supports one-time ingestion into Supabase. |
-| Retrieve context | Implemented | Finds resume chunks relevant to the analysis query. |
-| Generate analysis | Implemented | Sends retrieved context to Gemini for career feedback. |
-| User interface | Planned | Will provide an easier way to upload and analyse resumes. |
+- Explainable ATS score with keyword, structure, readability, contact, and
+  quantified-impact checks.
+- Persistent RAG: every AI workflow uses Supabase pgvector. There is no
+  in-memory vector-store or lexical-retrieval path.
+- Stable document IDs make ingestion idempotent across Vercel/serverless
+  restarts.
+- Two focused AI workflows: grounded resume chat and a concise career-insights
+  report covering strengths, role fit, evidence gaps, and improvements.
+- Two interface modes: General keeps the experience resume-focused, while
+  Engineer exposes chunking, embeddings, Supabase pgvector, retrieval settings,
+  indexed chunk counts, service status, and retrieved evidence.
+- Engineer mode reports the indexed chunk count read back from Supabase, and
+  offers explicit **Index resume** and **Refresh status** controls so indexing
+  never has to wait for the first question.
+- Optional contact-detail redaction before resume text leaves the app.
+- Downloadable Markdown reports.
+- Streamlit UI packaged as a Vercel container Function.
 
-## Requirements
+## RAG implementation
 
-- [Node.js](https://nodejs.org/) 20 or newer
-- npm
-- A plain-text resume (`.txt`)
-- A Supabase `documents` table and `match_documents` database function
-- Hugging Face and Google Gemini API keys
+The commented Python implementation in `resume_analyser/rag.py` intentionally
+matches the original `index.js` prototype:
 
-## Getting started
+1. `RecursiveCharacterTextSplitter` creates 500-character chunks with a
+   50-character overlap.
+2. `HuggingFaceEndpointEmbeddings` uses
+   `sentence-transformers/all-MiniLM-L6-v2` to produce 384-dimensional vectors.
+3. `SupabaseVectorStore.from_documents` upserts the chunks into `documents`.
+4. `vector_store.as_retriever()` creates a resume-scoped retriever.
+5. `retriever.invoke(query)` selects the relevant evidence.
+6. `PromptTemplate | ChatGoogleGenerativeAI | StrOutputParser` produces the
+   grounded result.
 
-1. Clone the repository and enter it:
+ATS scoring remains local. When external processing is enabled, the RAG path
+always stores vectors in Supabase before retrieval and Gemini generation.
 
-   ```powershell
-   git clone https://github.com/shefali289/resume_analyser_rag.git
-   cd resume_analyser_rag
-   ```
+### When indexing happens
 
-2. Install the dependencies:
+Uploading a resume only parses it in memory; no text leaves the app at that
+point. Chunking, embedding, and the Supabase upsert run when either:
 
-   ```powershell
-   npm install
-   ```
+- **Index resume** is pressed in the Engineer pipeline panel; or
+- the first Resume Chat question or GenAI Insights report is requested, which
+  indexes on demand before retrieving.
 
-   If PowerShell blocks `npm.ps1`, use the Windows command shim:
+Both paths require the **Enable RAG + GenAI** toggle, because both send resume
+text to Hugging Face and Supabase. The button is disabled until that toggle is
+on and the vector-store variables are configured.
 
-   ```powershell
-   npm.cmd install
-   ```
+The **Current index** card is not session state. It is a metadata-only
+`count(*)` of the Supabase rows whose `metadata->>'resume_id'` matches the
+uploaded resume, so a freshly restarted session still reports a resume that was
+indexed earlier. The count is fetched once per resume; **Refresh status**
+re-reads it, and neither call downloads embeddings or resume text.
 
-3. Create `resume.txt` in the project root and paste the resume's plain text
-   into it. This file is ignored by Git to avoid committing personal data.
+## Local setup
 
-4. Run the application:
-
-   ```powershell
-   npm start
-   ```
-
-   Or, when PowerShell blocks npm scripts:
-
-   ```powershell
-   npm.cmd start
-   ```
-
-   You can also run the entry point directly:
-
-   ```powershell
-   node index.js
-   ```
-
-The command retrieves relevant resume chunks from Supabase and prints
-Gemini-generated feedback about strengths, suitable roles, and areas for
-improvement.
-
-## Environment variables
-
-Copy `.env.sample` to `.env` and provide the required configuration:
+Python 3.12 is recommended because it matches the deployment container.
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 Copy-Item .env.sample .env
 ```
 
-| Variable | Intended use |
-| --- | --- |
-| `HF_API_KEY` | Hugging Face services or models. |
-| `SUPABASE_URL` | Supabase project URL. |
-| `SUPABASE_KEY` | Supabase project API key. |
-| `GEMINI_API_KEY` | Google Gemini model access. |
-| `GEMINI_MODEL` | Gemini model ID; use `gemini-3.6-flash`. |
+Add the required credentials to `.env`, run the Supabase schema described
+below, and start the application:
 
-All five variables are required by the current script. `SUPABASE_URL` must be
-the project base URL (for example, `https://PROJECT_REF.supabase.co`) without a
-`/rest/v1` suffix. Never commit `.env` or real credentials.
+```powershell
+python scripts/check_deployment.py --live
+streamlit run streamlit_app.py
+```
+
+If PowerShell blocks activation:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\check_deployment.py --live
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
+```
+
+## Required environment variables
+
+All production values must be configured in Vercel Project Settings. Do not
+commit `.env` or `.streamlit/secrets.toml`.
+
+| Variable | Required | Value |
+| --- | --- | --- |
+| `HF_API_KEY` | Yes | Hugging Face token with Inference Providers access |
+| `HF_EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` |
+| `SUPABASE_URL` | Yes | `https://PROJECT_REF.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only secret/service-role key |
+| `SUPABASE_TABLE` | No | `documents` |
+| `SUPABASE_QUERY` | No | `match_documents` |
+| `GEMINI_API_KEY` | Yes | Google AI Studio API key |
+| `GEMINI_MODEL` | No | `gemini-3.7-flash` |
+
+`HUGGINGFACEHUB_API_TOKEN`, `GOOGLE_API_KEY`, and the older `SUPABASE_KEY` are
+accepted as compatibility aliases. Prefer the canonical names in the table.
+
+The Supabase URL must be the project base URL without `/rest/v1`. Never use a
+browser-visible/public variable such as `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY`.
+The service-role key stays inside the server-side Streamlit container.
+
+## Supabase setup
+
+1. Create a Supabase project.
+2. Open its SQL editor.
+3. Run the complete [`supabase/schema.sql`](supabase/schema.sql) script.
+4. Copy the project URL and server-side service-role/secret key into `.env` and
+   Vercel Project Settings.
+5. Run `python scripts/check_deployment.py --live`.
+
+The schema enables pgvector, creates the `documents` table, adds a GIN metadata
+index, enables row-level security, and creates `match_documents`. The embedding
+column has 384 dimensions and must match the configured Hugging Face model.
+
+The table intentionally has no public RLS policy. Access is through the
+server-side key only.
+
+## Deploy to Vercel
+
+Vercel now supports OCI container Functions and detects `Dockerfile.vercel` at
+the repository root. The container runs Streamlit on Vercel's injected `PORT`.
+
+1. Push this repository to GitHub.
+2. Import the repository into Vercel.
+3. Ensure Fluid Compute is enabled for the project.
+4. In **Settings → Environment Variables**, add every required variable from
+   the table above. Select Production and Preview only where the credentials
+   should be available.
+5. Use a separate Supabase project/key for untrusted preview deployments when
+   possible.
+6. Deploy. Vercel automatically builds `Dockerfile.vercel`; no build or output
+   directory override is required.
+7. Open the deployment, confirm all three service indicators show **Ready**,
+   upload a non-sensitive test resume, and run one Resume Chat question.
+
+Vercel container Functions are stateless and can scale down. Persistent vectors
+remain in Supabase, while Streamlit UI session state may reset when a Function
+instance is replaced. Stable chunk IDs prevent duplicate rows after a reconnect
+or cold start.
+
+### Test the production container locally
+
+If Docker is installed:
+
+```powershell
+docker build -f Dockerfile.vercel -t careerlens-ai .
+docker run --rm -p 8501:80 --env-file .env careerlens-ai
+```
+
+Then open `http://localhost:8501`.
+
+## Safe deployment preflight
+
+Static validation checks required keys and URL structure without printing any
+secret:
+
+```powershell
+python scripts/check_deployment.py
+```
+
+Live validation sends only harmless test text—not a resume—to Hugging Face and
+Gemini and performs a read-only Supabase similarity-search RPC:
+
+```powershell
+python scripts/check_deployment.py --live
+```
+
+The preflight verifies:
+
+- required variables are present;
+- Hugging Face returns 384-dimensional vectors;
+- the Supabase URL, key, table, and RPC work together;
+- the configured Gemini model accepts a request.
+
+## Tests
+
+The automated suite makes no network calls; Hugging Face, Supabase, and Gemini
+are all faked at their client boundaries.
+
+```powershell
+python -m unittest discover -s tests -v
+python -m pip check
+node --check index.js
+```
+
+19 tests cover ATS scoring, configuration and its aliases, resume parsing and
+redaction, the split/embed/retrieve/generate pipeline, the Supabase chunk
+count, and Streamlit rendering. The `tests/test_streamlit_smoke.py` cases drive
+the real app through `streamlit.testing.v1.AppTest`, asserting that the
+Engineer panel reports the stored chunk count, exposes the index controls,
+blocks indexing until external processing is enabled, and surfaces indexing
+failures instead of raising.
 
 ## Project structure
 
 ```text
 resume_analyser_rag/
+|-- .streamlit/
+|   |-- config.toml
+|   `-- secrets.toml.example
 |-- docs/
 |   `-- architecture.svg
+|-- resume_analyser/
+|   |-- ai.py
+|   |-- ats.py
+|   |-- config.py
+|   |-- parsers.py
+|   |-- rag.py
+|   `-- reports.py
+|-- scripts/
+|   `-- check_deployment.py
+|-- supabase/
+|   `-- schema.sql
+|-- tests/
+|   |-- test_ats.py
+|   |-- test_config.py
+|   |-- test_parsers.py
+|   |-- test_rag.py
+|   `-- test_streamlit_smoke.py
+|-- .dockerignore
 |-- .env.sample
-|-- .gitignore
+|-- Dockerfile.vercel
 |-- index.js
-|-- package.json
-`-- README.md
+|-- requirements.txt
+`-- streamlit_app.py
 ```
 
-## How the pipeline works
+## Legacy Node.js prototype
 
-1. Read resume text from the uploaded or local file.
-2. Split the text into small overlapping chunks.
-3. Create a vector embedding for every chunk.
-4. Store the chunks and embeddings in the vector database.
-5. Retrieve the chunks most relevant to the user's request.
-6. Give that context to the LLM to generate grounded resume analysis.
+The original CLI remains available:
 
-The command currently uses the existing vectors in Supabase. To ingest or
-refresh a resume, temporarily uncomment the documented
-`SupabaseVectorStore.fromDocuments(...)` block in `index.js`, run the command
-once, and comment it again to avoid inserting duplicate chunks. The UI will be
-added later.
+```powershell
+npm.cmd install
+node index.js
+```
+
+It uses the same environment variables, embedding model, Supabase table/RPC,
+and Gemini model as the Streamlit app.
+
+## Disclaimer
+
+ATS scores are explainable estimates, not guarantees of employer-system
+ranking. Review all generated content and add keywords or metrics only when they
+truthfully describe the candidate's experience.

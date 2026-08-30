@@ -1,0 +1,17 @@
+.git
+.github
+.vercel
+.venv
+node_modules
+tests
+supabase
+.env
+.env.*
+.streamlit/secrets.toml
+resume.txt
+*.pyc
+__pycache__
+.pytest_cache
+.npm
+.npm-cache
+npm-debug.log*
