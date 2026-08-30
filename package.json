@@ -2,13 +2,19 @@
   "name": "resume-analyser-rag",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Resume analyser using retrieval-augmented generation",
-  "scripts": {},
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
+    "@huggingface/inference": "^4.13.28",
     "@langchain/community": "^1.1.29",
     "@langchain/core": "^1.2.9",
     "@langchain/google-genai": "^2.3.0",
+    "@langchain/textsplitters": "^1.0.1",
     "@supabase/supabase-js": "^2.112.4",
-    "dotenv": "^16.6.1"
+    "dotenv": "^16.6.1",
+    "langchain": "^1.5.10"
   }
 }
