@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="340" viewBox="0 0 900 340" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" role="img" aria-labelledby="title description">
   <title id="title">Resume Analyser RAG architecture</title>
-  <desc id="description">Resume text is split into chunks, embedded, stored in a vector database, retrieved, and passed to an LLM.</desc>
+  <desc id="description">A Streamlit interface provides resume upload, ATS analysis, coaching, chat, and reports over a retrieval pipeline.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#a1a1aa"/>
@@ -14,7 +14,12 @@
     </style>
   </defs>
 
-  <rect width="900" height="340" rx="18" fill="#09090b"/>
+  <rect width="900" height="420" rx="18" fill="#09090b"/>
+
+  <rect class="implemented" x="30" y="16" width="840" height="48" rx="14"/>
+  <text class="label" x="450" y="47">STREAMLIT ON VERCEL · ATS · COACH · CHAT · REPORT</text>
+
+  <g transform="translate(0 80)">
 
   <path class="flow" d="M 230 90 H 335"/>
   <path class="flow" d="M 565 90 H 670"/>
@@ -24,7 +29,7 @@
 
   <rect class="implemented" x="30" y="45" width="200" height="90" rx="14"/>
   <text class="label" x="130" y="84">RESUME</text>
-  <text class="small" x="130" y="109" text-anchor="middle">(.txt)</text>
+  <text class="small" x="130" y="109" text-anchor="middle">TXT · PDF · DOCX</text>
 
   <rect class="implemented" x="335" y="45" width="230" height="90" rx="14"/>
   <text class="label" x="450" y="97">CHUNKS</text>
@@ -44,6 +49,5 @@
 
   <circle cx="336" cy="320" r="6" fill="#67e8f9"/>
   <text class="small" x="350" y="325">Implemented</text>
-  <circle cx="475" cy="320" r="6" fill="#a1a1aa"/>
-  <text class="small" x="489" y="325">Planned</text>
+  </g>
 </svg>

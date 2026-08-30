@@ -9,11 +9,14 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
 try {
+  // Prefer the server-only service-role key; keep SUPABASE_KEY for compatibility.
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+
   // Check for required environment variables
   const requiredEnvironmentVariables = [
     "HF_API_KEY",
     "SUPABASE_URL",
-    "SUPABASE_KEY",
     "GEMINI_API_KEY",
     "GEMINI_MODEL",
   ];
@@ -21,6 +24,9 @@ try {
   const missingEnvironmentVariables = requiredEnvironmentVariables.filter(
     (name) => !process.env[name]?.trim(),
   );
+  if (!supabaseKey?.trim()) {
+    missingEnvironmentVariables.push("SUPABASE_SERVICE_ROLE_KEY");
+  }
 
   // If any required environment variables are missing, throw an error
   if (missingEnvironmentVariables.length > 0) {
@@ -53,7 +59,7 @@ try {
   // Create Supabase client
   const client = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY,
+    supabaseKey,
   );
 
   // Store the documents and their embeddings in Supabase vector store - one-time
@@ -90,7 +96,6 @@ try {
   const llm = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL,
-    temperature: 0.7,
   });
 
   // Create a prompt template to generate a response based on the retrieved context and the query
